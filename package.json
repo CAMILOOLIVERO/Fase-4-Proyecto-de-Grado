@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "migrate": "node src/migrate.js",
-    "test": "node --test test/api.test.js"
+    "test": "node --test test/api.test.js",
+    "usuarios": "node scripts/usuarios.js"
   },
   "license": "MIT",
   "dependencies": {
