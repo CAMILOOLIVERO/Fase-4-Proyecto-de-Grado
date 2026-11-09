@@ -70,11 +70,21 @@
   // ---- reportar ----
   document.querySelectorAll('#niveles button').forEach(b => b.onclick = () => { nivelSel = b.dataset.n; document.querySelectorAll('#niveles button').forEach(x => x.classList.toggle('on', x === b)); });
   $('#btnUbicacion').onclick = () => navigator.geolocation ? navigator.geolocation.getCurrentPosition(p => { fijarPunto(p.coords.latitude, p.coords.longitude); mapaPick.setView([p.coords.latitude, p.coords.longitude], 16); }, () => { $('#msgReporte').textContent = 'No se pudo obtener tu ubicación. Toca el mapa para marcar el punto.'; $('#msgReporte').className = 'msg err'; }) : 0;
+  // Reduce la fotografía (máx. 1600 px, JPEG) para que las fotos de la galería del celular no superen el límite de 4 MB
+  async function reducirFoto(file) {
+    try {
+      const bmp = await createImageBitmap(file); const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
+      return blob ? new File([blob], 'foto.jpg', { type: 'image/jpeg' }) : file;
+    } catch { return file; }
+  }
   $('#formReporte').addEventListener('submit', async e => {
     e.preventDefault(); const msg = $('#msgReporte'); msg.className = 'msg';
     if (!token) { abrirAuth(false); return; }
     if (!punto || !nivelSel) { msg.textContent = 'Marca el punto en el mapa y elige el nivel del agua.'; msg.className = 'msg err'; return; }
-    const fd = new FormData(); fd.append('lat', punto.lat); fd.append('lng', punto.lng); fd.append('nivel', nivelSel); fd.append('descripcion', $('#desc').value); if ($('#foto').files[0]) fd.append('foto', $('#foto').files[0]);
+    const fd = new FormData(); fd.append('lat', punto.lat); fd.append('lng', punto.lng); fd.append('nivel', nivelSel); fd.append('descripcion', $('#desc').value); if ($('#foto').files[0]) fd.append('foto', await reducirFoto($('#foto').files[0]));
     try { const t0 = Date.now(); const r = await api('POST', '/api/reportes', fd, true); msg.textContent = `Reporte enviado (${((Date.now() - t0) / 1000).toFixed(1)} s). Se alertó a ${r.alertas_enviadas} usuario(s) cercano(s).`; msg.className = 'msg ok'; $('#desc').value = ''; $('#foto').value = ''; cargarReportes(); }
     catch (err) { msg.textContent = err.message; msg.className = 'msg err'; }
   });
@@ -87,7 +97,7 @@
     window.__reps = rs; const esc = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     $('#tablaAdmin tbody').innerHTML = rs.map(r => `<tr><td>${r.id}</td><td>${new Date(r.creado_en).toLocaleString('es-CO')}</td><td>${esc(r.zona) || '–'}</td><td><span class="pill ${r.nivel}">${r.nivel}</span></td><td>${r.estado}</td><td><span class="desc" title="${esc(r.descripcion)}">${esc(r.descripcion) || '–'}</span></td><td>${r.foto ? '📷' : '–'}</td><td><button data-ver="${r.id}">Ver detalle</button></td></tr>`).join('');
     const fecha = d => d ? new Date(d).toLocaleString('es-CO') : '–';
-    $('#tablaUsuarios tbody').innerHTML = us.map(u => `<tr><td>${esc(u.nombre)}</td><td>${esc(u.correo)}</td><td>${u.rol}</td><td>${fecha(u.creado_en)}</td><td><b>${u.reportes}</b></td><td>${u.validados}</td><td>${u.descartados}</td><td>${fecha(u.ultimo_reporte)}</td></tr>`).join('');
+    $('#tablaUsuarios tbody').innerHTML = us.map(u => `<tr><td>${esc(u.nombre)}</td><td>${esc(u.correo)}</td><td>${u.rol}</td><td>${fecha(u.creado_en)}</td><td><b>${u.reportes}</b></td><td>${u.validados}</td><td>${u.descartados}</td><td>${fecha(u.ultimo_reporte)}</td><td>${u.rol === 'admin' ? '–' : `<button data-elim="${u.id}" data-nom="${esc(u.nombre)}" data-rep="${u.reportes}" style="color:#c62828">Eliminar</button>`}</td></tr>`).join('');
   }
   function verDetalle(id) {
     const r = (window.__reps || []).find(x => x.id === id); if (!r) return;
@@ -99,6 +109,12 @@
   }
   $('#cerrarDet').onclick = () => $('#dlgDetalle').close();
   $('#dAcc').addEventListener('click', async e => { const b = e.target.closest('button'); if (!b) return; await api('PATCH', `/api/admin/reportes/${b.dataset.id}`, { estado: b.dataset.e }); $('#dlgDetalle').close(); cargarAdmin(); cargarReportes(); });
+  $('#tablaUsuarios').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-elim]'); if (!b) return;
+    if (!confirm(`¿Eliminar al usuario "${b.dataset.nom}" y sus ${b.dataset.rep} reporte(s)? Esta acción no se puede deshacer.`)) return;
+    try { await api('DELETE', `/api/admin/usuarios/${b.dataset.elim}`); } catch (err) { alert(err.message || 'No se pudo eliminar.'); }
+    cargarAdmin(); cargarReportes();
+  });
   $('#tablaAdmin').addEventListener('click', e => { const b = e.target.closest('button[data-ver]'); if (b) verDetalle(+b.dataset.ver); });
 
   // ---- navegación ----

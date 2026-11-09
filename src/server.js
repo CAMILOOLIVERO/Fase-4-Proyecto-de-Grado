@@ -122,6 +122,23 @@ app.get('/api/admin/usuarios', auth.requiere('admin'), wrap(async (_, res) => {
     GROUP BY u.id ORDER BY reportes DESC, u.creado_en DESC LIMIT 200`);
   res.json(rows);
 }));
+app.delete('/api/admin/usuarios/:id', auth.requiere('admin'), wrap(async (req, res) => {
+  const id = +req.params.id;
+  const u = await pool.query('SELECT id, rol FROM usuario WHERE id=$1', [id]);
+  if (!u.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
+  if (u.rows[0].rol === 'admin') return res.status(400).json({ error: 'No se pueden eliminar cuentas de administrador.' });
+  const c = await pool.connect();
+  try {
+    // se elimina la cuenta y todos sus datos (reportes, fotografías, confirmaciones y alertas)
+    await c.query('BEGIN');
+    await c.query('DELETE FROM confirmacion WHERE usuario_id=$1', [id]);
+    await c.query('DELETE FROM notificacion WHERE usuario_id=$1', [id]);
+    const r = await c.query('DELETE FROM reporte WHERE usuario_id=$1', [id]);
+    await c.query('DELETE FROM usuario WHERE id=$1', [id]);
+    await c.query('COMMIT');
+    res.json({ ok: true, reportes_eliminados: r.rowCount });
+  } catch (e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); }
+}));
 app.patch('/api/admin/reportes/:id', auth.requiere('admin'), wrap(async (req, res) => {
   const { estado } = req.body || {};
   if (!['confirmado', 'resuelto', 'descartado'].includes(estado)) return res.status(400).json({ error: 'Estado inválido.' });

@@ -76,3 +76,19 @@ test('Administración: lista de usuarios con su número de reportes', async () =
   const autor = r.b.find(u => u.correo === `autor${sfx}@test.co`);
   assert.ok(autor && autor.reportes >= 1 && 'validados' in autor && !('clave_hash' in autor), 'el autor aparece con sus reportes y sin datos sensibles');
 });
+
+test('Administración: eliminar usuarios (y sus datos) con restricciones', async () => {
+  const adm = (await j('POST', '/api/login', { correo: 'admin@alertaarroyo.local', clave: 'Admin12345' })).b.token;
+  const reg2 = await j('POST', '/api/registro', { nombre: 'borrar', correo: `borrar${sfx}@test.co`, clave: 'Clave12345', acepta_datos: true });
+  const tok = reg2.b.token, uid = reg2.b.usuario.id;
+  assert.equal((await j('POST', '/api/reportes', { ...REBOLO, nivel: 'bajo', descripcion: 'para borrar' }, tok)).s, 201);
+  const otro = await reg('otro');
+  assert.equal((await j('DELETE', `/api/admin/usuarios/${uid}`, null, otro)).s, 403);
+  assert.equal((await j('DELETE', '/api/admin/usuarios/99999999', null, adm)).s, 404);
+  const admId = (await j('GET', '/api/admin/usuarios', null, adm)).b.find(u => u.rol === 'admin').id;
+  assert.equal((await j('DELETE', `/api/admin/usuarios/${admId}`, null, adm)).s, 400);
+  const d = await j('DELETE', `/api/admin/usuarios/${uid}`, null, adm);
+  assert.equal(d.s, 200); assert.equal(d.b.reportes_eliminados, 1);
+  assert.ok(!(await j('GET', '/api/admin/usuarios', null, adm)).b.some(u => u.id === uid), 'el usuario ya no aparece');
+  assert.equal((await j('POST', '/api/reportes', { ...REBOLO, nivel: 'bajo' }, tok)).s, 401, 'la sesión de una cuenta eliminada deja de funcionar');
+});
