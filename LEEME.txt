@@ -1,8 +1,0 @@
-ALERTAARROYO - COMO INICIAR
-
-1. Abre Docker Desktop y espera a que este corriendo.
-2. Haz doble clic en iniciar.bat
-3. Se abre http://localhost:3000 (si no, abrelo manualmente).
-4. Para apagar: cierra la ventana negra o presiona Ctrl+C.
-
-Administrador: admin@alertaarroyo.local  /  Admin12345
