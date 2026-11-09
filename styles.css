@@ -42,3 +42,9 @@ dialog input{width:100%;padding:11px;border:1px solid var(--bor);border-radius:8
 td .desc{max-width:220px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom}
 
 dialog select{width:100%;padding:11px;border:1px solid var(--bor);border-radius:8px;font:inherit;margin-top:4px}.mi img{max-width:100%;max-height:160px;border-radius:8px;margin-top:6px;display:block}.mi .fila{margin-top:8px}
+
+.okbox{display:flex;align-items:center;gap:14px;margin:14px 0;padding:16px;border-radius:12px;background:#e8f5e9;border:2px solid #2e7d32;color:#1b5e20;animation:aparece .35s ease-out}
+.okbox[hidden]{display:none}.okbox small{display:block;font-weight:400;margin-top:2px}.okbox b{font-size:1.1rem}
+.chulo{flex:none;width:48px;height:48px;border-radius:50%;background:#2e7d32;color:#fff;font-size:30px;line-height:48px;text-align:center;font-weight:700;animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}@keyframes aparece{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.pie{text-align:center;color:var(--mut);font-size:.8rem;padding:18px 0 28px}

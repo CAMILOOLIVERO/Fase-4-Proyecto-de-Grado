@@ -16,7 +16,7 @@ const upload = multer({
 const wrap = fn => (req, res) => fn(req, res).catch(e => { console.error(e); res.status(500).json({ error: 'Error interno del servidor.' }); });
 const latlngOk = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 
-app.get('/api/salud', wrap(async (_, res) => { await pool.query('SELECT 1'); res.json({ ok: true, radio_m: cfg.radioAlertaM }); }));
+app.get('/api/salud', wrap(async (_, res) => { await pool.query('SELECT 1'); res.json({ ok: true, radio_m: cfg.radioAlertaM, version: require('../package.json').version }); }));
 
 // RF1 – registro con aceptación de tratamiento de datos
 app.post('/api/registro', wrap(async (req, res) => {

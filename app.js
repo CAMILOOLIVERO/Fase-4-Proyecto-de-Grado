@@ -81,16 +81,17 @@
     } catch { return file; }
   }
   $('#formReporte').addEventListener('submit', async e => {
-    e.preventDefault(); const msg = $('#msgReporte'); msg.className = 'msg';
+    e.preventDefault(); const msg = $('#msgReporte'); msg.className = 'msg'; $('#okReporte').hidden = true;
     if (!token) { abrirAuth(false); return; }
     if (!punto || !nivelSel) { msg.textContent = 'Marca el punto en el mapa y elige el nivel del agua.'; msg.className = 'msg err'; return; }
     if ($('#desc').value.trim().length < 3) { msg.textContent = 'La descripción es obligatoria.'; msg.className = 'msg err'; return; }
     if (!$('#foto').files[0]) { msg.textContent = 'La fotografía es obligatoria: toma una foto o elige una de tu galería.'; msg.className = 'msg err'; return; }
     const fd = new FormData(); fd.append('lat', punto.lat); fd.append('lng', punto.lng); fd.append('nivel', nivelSel); fd.append('descripcion', $('#desc').value); if ($('#foto').files[0]) fd.append('foto', await reducirFoto($('#foto').files[0]));
-    try { const t0 = Date.now(); const r = await api('POST', '/api/reportes', fd, true); msg.textContent = `Reporte enviado (${((Date.now() - t0) / 1000).toFixed(1)} s). Se alertó a ${r.alertas_enviadas} usuario(s) cercano(s).`; msg.className = 'msg ok'; $('#desc').value = ''; $('#foto').value = ''; cargarMis(); cargarReportes(); }
+    try { const t0 = Date.now(); const r = await api('POST', '/api/reportes', fd, true); msg.textContent = ''; mostrarEnviado(`Se registró en ${((Date.now() - t0) / 1000).toFixed(1)} s y se alertó a ${r.alertas_enviadas} usuario(s) cercano(s).`); $('#desc').value = ''; $('#foto').value = ''; cargarMis(); cargarReportes(); }
     catch (err) { msg.textContent = err.message; msg.className = 'msg err'; }
   });
 
+  let tOk; function mostrarEnviado(det) { const b = $('#okReporte'); $('#okDet').textContent = det; b.hidden = false; b.scrollIntoView({ behavior: 'smooth', block: 'center' }); clearTimeout(tOk); tOk = setTimeout(() => { b.hidden = true; }, 8000); }
   // ---- mis reportes (edición por el autor) ----
   const escM = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   let misRep = [], editId = null;
@@ -146,7 +147,7 @@
     if (b.dataset.vista === 'alertas') { cargarAlertas().then(async () => { const ns = await api('GET', '/api/notificaciones'); await Promise.all(ns.filter(n => !n.leida).map(n => api('POST', `/api/notificaciones/${n.id}/leer`))); $('#nAlertas').hidden = true; }); } if (b.dataset.vista === 'admin') cargarAdmin().catch(() => {}); if (b.dataset.vista === 'mis') cargarMis();
     if (b.dataset.vista === 'alertas' && token && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission(); });
 
-  api('GET', '/api/salud').then(s => { $('#radio').textContent = s.radio_m; }).catch(() => {});
+  api('GET', '/api/salud').then(s => { $('#radio').textContent = s.radio_m; $('#ver').textContent = s.version || '–'; }).catch(() => {});
   pintarSesion(); cargarZonas(); cargarReportes(); if (token) { iniciarUbicacion(); cargarAlertas(); }
   // actualización automática, sin recargar la página:
   //  1) tiempo real: el servidor avisa al instante cuando algo cambia (Server-Sent Events);

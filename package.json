@@ -1,6 +1,6 @@
 {
   "name": "alertaarroyo",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Plataforma web de reporte ciudadano y alerta temprana geolocalizada para arroyos de Barranquilla (prototipo TRL 5)",
   "main": "src/server.js",
   "scripts": {
