@@ -81,11 +81,13 @@
 
   // ---- administración ----
   async function cargarAdmin() {
-    const [st, rs] = await Promise.all([api('GET', '/api/admin/estadisticas'), api('GET', '/api/admin/reportes')]);
+    const [st, rs, us] = await Promise.all([api('GET', '/api/admin/estadisticas'), api('GET', '/api/admin/reportes'), api('GET', '/api/admin/usuarios')]);
     const tot = st.por_estado.reduce((a, b) => a + b.total, 0);
     $('#stats').innerHTML = `<div class="stat"><b>${tot}</b><span>Reportes totales</span></div><div class="stat"><b>${st.alertas.alertas}</b><span>Alertas enviadas</span></div><div class="stat"><b>${st.alertas.seg_promedio ?? '–'} s</b><span>Tiempo promedio reporte→alerta</span></div>` + st.por_zona.map(z => `<div class="stat"><b>${z.total}</b><span>${z.zona}</span></div>`).join('');
     window.__reps = rs; const esc = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     $('#tablaAdmin tbody').innerHTML = rs.map(r => `<tr><td>${r.id}</td><td>${new Date(r.creado_en).toLocaleString('es-CO')}</td><td>${esc(r.zona) || '–'}</td><td><span class="pill ${r.nivel}">${r.nivel}</span></td><td>${r.estado}</td><td><span class="desc" title="${esc(r.descripcion)}">${esc(r.descripcion) || '–'}</span></td><td>${r.foto ? '📷' : '–'}</td><td><button data-ver="${r.id}">Ver detalle</button></td></tr>`).join('');
+    const fecha = d => d ? new Date(d).toLocaleString('es-CO') : '–';
+    $('#tablaUsuarios tbody').innerHTML = us.map(u => `<tr><td>${esc(u.nombre)}</td><td>${esc(u.correo)}</td><td>${u.rol}</td><td>${fecha(u.creado_en)}</td><td><b>${u.reportes}</b></td><td>${u.validados}</td><td>${u.descartados}</td><td>${fecha(u.ultimo_reporte)}</td></tr>`).join('');
   }
   function verDetalle(id) {
     const r = (window.__reps || []).find(x => x.id === id); if (!r) return;

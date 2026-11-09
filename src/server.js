@@ -111,6 +111,17 @@ app.get('/api/admin/reportes', auth.requiere('admin'), wrap(async (_, res) => {
   const { rows } = await pool.query(`SELECT r.id, r.nivel, r.estado, r.descripcion, r.foto, r.creado_en, u.nombre autor, z.nombre zona, ST_Y(r.ubicacion::geometry) lat, ST_X(r.ubicacion::geometry) lng, (SELECT count(*)::int FROM confirmacion c WHERE c.reporte_id=r.id) confirmaciones, (SELECT count(*)::int FROM notificacion n WHERE n.reporte_id=r.id) alertas FROM reporte r JOIN usuario u ON u.id=r.usuario_id LEFT JOIN zona_riesgo z ON z.id=r.zona_id ORDER BY r.creado_en DESC LIMIT 100`);
   res.json(rows);
 }));
+app.get('/api/admin/usuarios', auth.requiere('admin'), wrap(async (_, res) => {
+  const { rows } = await pool.query(`
+    SELECT u.id, u.nombre, u.correo, u.rol, u.creado_en,
+           count(r.id)::int reportes,
+           (count(r.id) FILTER (WHERE r.estado IN ('confirmado','resuelto')))::int validados,
+           (count(r.id) FILTER (WHERE r.estado='descartado'))::int descartados,
+           max(r.creado_en) ultimo_reporte
+    FROM usuario u LEFT JOIN reporte r ON r.usuario_id=u.id
+    GROUP BY u.id ORDER BY reportes DESC, u.creado_en DESC LIMIT 200`);
+  res.json(rows);
+}));
 app.patch('/api/admin/reportes/:id', auth.requiere('admin'), wrap(async (req, res) => {
   const { estado } = req.body || {};
   if (!['confirmado', 'resuelto', 'descartado'].includes(estado)) return res.status(400).json({ error: 'Estado inválido.' });

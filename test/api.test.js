@@ -67,3 +67,12 @@ test('RF2: la fotografía se guarda en la base de datos y se sirve por la API', 
   assert.equal(Buffer.from(await img.arrayBuffer()).length, png.length);
   assert.equal((await fetch(base + '/api/fotos/99999999')).status, 404);
 });
+
+test('Administración: lista de usuarios con su número de reportes', async () => {
+  const adm = (await j('POST', '/api/login', { correo: 'admin@alertaarroyo.local', clave: 'Admin12345' })).b.token;
+  const ciud = await reg('uslista');
+  assert.equal((await j('GET', '/api/admin/usuarios', null, ciud)).s, 403);
+  const r = await j('GET', '/api/admin/usuarios', null, adm); assert.equal(r.s, 200);
+  const autor = r.b.find(u => u.correo === `autor${sfx}@test.co`);
+  assert.ok(autor && autor.reportes >= 1 && 'validados' in autor && !('clave_hash' in autor), 'el autor aparece con sus reportes y sin datos sensibles');
+});
